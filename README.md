@@ -1,4 +1,5 @@
-### Running the demo
+### Running the demo :coffee:
+
 Open three new terminals and run the following:
 
 Manipulator's gazebo world:
