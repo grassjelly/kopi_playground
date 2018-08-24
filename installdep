@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+
+set -e
+sudo apt-get install -y ros-kinetic-gazebo-ros-pkgs 
+sudo apt-get install -y ros-kinetic-gazebo-ros-control
+sudo apt-get install -y ros-kinetic-moveit
+sudo apt-get install -y ros-kinetic-ur-gazebo 
+sudo apt-get install -y ros-kinetic-ur5-moveit-config 
+sudo apt-get install -y ros-kinetic-ur-kinematics
