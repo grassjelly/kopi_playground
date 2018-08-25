@@ -16,9 +16,9 @@ class Manipulator:
         self.group = moveit_commander.MoveGroupCommander("manipulator")
         self.display_trajectory_publisher = rospy.Publisher(
                                         '/move_group/display_planned_path',
-                                        moveit_msgs.msg.DisplayTrajectory)
+                                        moveit_msgs.msg.DisplayTrajectory, queue_size = 10)
 
-    def brew(self, target): 
+    def move(self, target): 
         self.group.set_pose_target(target)
 
         plan1 = self.group.plan()
@@ -52,13 +52,23 @@ def find_object():
     target_object.orientation = Quaternion(*quaternion_from_euler(-3.138, -0.000, 1.570))
 
     return target_object
+
+def milk_pose():
+    target_object = geometry_msgs.msg.Pose()
+    target_object.position.x = -0.215
+    target_object.position.y = 0.617
+    target_object.position.z =  0.401
+    target_object.orientation = Quaternion(*quaternion_from_euler(-3.138, 0.000, 1.572))
+
+    return target_object
         
 def main():
         rospy.init_node('manipulator_test', anonymous=True)
         barista = Barista()
         while not rospy.is_shutdown():
             if barista.order == "test":
-                barista.brew(find_object())
+                barista.move(find_object())
+                barista.move(milk_pose())
                 barista.order = None
             
 if __name__ == '__main__':
