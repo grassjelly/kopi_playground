@@ -1,4 +1,5 @@
-### Running the demo
+### Running the demo :coffee:
+
 Open three new terminals and run the following:
 
 Manipulator's gazebo world:
@@ -16,7 +17,7 @@ Sample application:
 rosrun kopi_playground hello_arm.py
 ```
 
-Rviz(optional):
+Rviz (optional):
 ```
 roslaunch ur5_moveit_config moveit_rviz.launch config:=true
 ```
