@@ -17,7 +17,7 @@ Sample application:
 rosrun kopi_playground hello_arm.py
 ```
 
-Rviz(optional):
+Rviz (optional):
 ```
 roslaunch ur5_moveit_config moveit_rviz.launch config:=true
 ```
