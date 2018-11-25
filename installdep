@@ -7,3 +7,6 @@ sudo apt-get install -y ros-kinetic-moveit
 sudo apt-get install -y ros-kinetic-ur-gazebo 
 sudo apt-get install -y ros-kinetic-ur5-moveit-config 
 sudo apt-get install -y ros-kinetic-ur-kinematics
+sudo apt-get install -y ros-kinetic-ros-control
+
+cp -r worlds/booth_model/ ~/.gazebo/models/
