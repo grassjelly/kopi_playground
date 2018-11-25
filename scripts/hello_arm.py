@@ -7,6 +7,10 @@ from geometry_msgs.msg import *
 import tf
 from tf.transformations import quaternion_from_euler, euler_from_quaternion
 
+# rabbitmq
+import pika
+import sys
+
 class Manipulator:
     def __init__(self):
         moveit_commander.roscpp_initialize(sys.argv)
@@ -26,21 +30,56 @@ class Manipulator:
 
         self.display_trajectory.trajectory_start = self.robot.get_current_state()
         self.display_trajectory.trajectory.append(plan1)
-        self.display_trajectory_publisher.publish(self.display_trajectory);
+        self.display_trajectory_publisher.publish(self.display_trajectory)
 
         rospy.sleep(5)
         self.group.go(wait=True)
 
-class Barista(Manipulator):
-    def __init__(self):
-        Manipulator.__init__(self)
-        rospy.Subscriber("brewing", String, self.order_callback, queue_size = 10)
-        self.order = None
 
-    def order_callback(self, coffee):
-        rospy.loginfo("Order Received %s", coffee.data)
-        self.order = coffee.data
-        
+class Barista(Manipulator):
+    """
+    RabbitMQ consumer worker
+    """
+    def __init__(self):
+        self.connection = pika.BlockingConnection(
+            pika.ConnectionParameters(host='localhost')
+        )   # todo: change localhost to static IP
+        self.channel = self.connection.channel()
+
+    def start_order_queue(self):
+        # RabbitMQ exchange
+        self.channel.exchange_declare(exchange='coffee',
+                                      exchange_type='topic')
+
+        # RabbitMQ queue configuration
+        # todo: change to load from config file
+        # todo: routing key is currently read all - to be changed
+        result = self.channel.queue_declare(exclusive=True)
+        queue_name = result.method.queue
+        self.channel.queue_bind(exchange='coffee',
+                                queue=queue_name,
+                                routing_key='#')
+        self.channel.basic_qos(prefetch_count=1)
+        self.channel.basic_consume(self.order_callback,
+                                   queue=queue_name,
+                                   no_ack=True)
+        rospy.info('Ready to take order ..')
+        return True
+
+    def wait_for_order(self):
+        if self.start_order_queue:
+            self.channel.start_consuming()
+        else:
+            rospy.logerr('ERROR: Rabbitmq configuration failed')    
+
+    # todo: validate coffee type
+    def order_callback(ch, method, properties, body):
+        rospy.loginfo('Order received! YAY!')
+        """
+        I supposed editing here will work?
+        - brew method with find_object as argument
+        """
+
 
 def find_object():
     # this is a place holder function for object detection
@@ -65,11 +104,10 @@ def milk_pose():
 def main():
         rospy.init_node('manipulator_test', anonymous=True)
         barista = Barista()
+        barista.start_order_queue()  # config rabbitmq consumer
+
         while not rospy.is_shutdown():
-            if barista.order == "test":
-                barista.move(find_object())
-                barista.move(milk_pose())
-                barista.order = None
-            
+            barista.wait_for_order()
+
 if __name__ == '__main__':
     main()
