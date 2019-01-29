@@ -4,7 +4,7 @@ Open three new terminals and run the following:
 
 Manipulator's gazebo world:
 ``` 
-roslaunch ur_gazebo ur5.launch
+roslaunch kopi_playground ur5.launch
 ```
 
 MoveIt!:
@@ -22,4 +22,8 @@ Rviz (optional):
 roslaunch ur5_moveit_config moveit_rviz.launch config:=true
 ```
 
+Simulating an order:
+```
+rostopic pub -1 /brewing std_msgs/String "test"
+```
 Now choose a sample order from the web app.
