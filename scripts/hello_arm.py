@@ -6,6 +6,7 @@ import moveit_msgs.msg
 from geometry_msgs.msg import *
 import tf
 from tf.transformations import quaternion_from_euler, euler_from_quaternion
+import joint_goals
 
 class Manipulator:
     def __init__(self):
@@ -17,58 +18,75 @@ class Manipulator:
         self.display_trajectory_publisher = rospy.Publisher(
                                         '/move_group/display_planned_path',
                                         moveit_msgs.msg.DisplayTrajectory, queue_size = 10)
+        
+        #create a virtual table to prevent collisions
+        self.table = PoseStamped()
+        self.table.header.frame_id = "base_link"
+        self.table.pose.position.x = 0
+        self.table.pose.position.y = 0
+        self.table.pose.position.z = -0.14
+        self.table.pose.orientation = Quaternion(*quaternion_from_euler(0.0, 0.0, 0.0))
+        self.scene.add_box("table", self.table, size=(2, 2, 0.01))
 
-    def move(self, target): 
-        self.group.set_pose_target(target)
+    def get_current_joints(self):
+        return self.group.get_current_joint_values()
 
-        plan1 = self.group.plan()
-        self.display_trajectory = moveit_msgs.msg.DisplayTrajectory()
+    def move_joints(self, joints):
+        target_joint = self.group.get_current_joint_values()
+        target_joint[0] = joints[0]
+        target_joint[1] = joints[1]
+        target_joint[2] = joints[2]
+        target_joint[3] = joints[3]
+        target_joint[4] = joints[4]
+        target_joint[5] = joints[5]
 
-        self.display_trajectory.trajectory_start = self.robot.get_current_state()
-        self.display_trajectory.trajectory.append(plan1)
-        self.display_trajectory_publisher.publish(self.display_trajectory);
-
-        rospy.sleep(5)
-        self.group.go(wait=True)
+        self.group.go(target_joint, wait=True)
+        self.group.stop()
 
 class Barista(Manipulator):
     def __init__(self):
         Manipulator.__init__(self)
         rospy.Subscriber("brewing", String, self.order_callback, queue_size = 10)
+        #rostopic pub -1 /brewing std_msgs/String "test"
         self.order = None
 
     def order_callback(self, coffee):
         rospy.loginfo("Order Received %s", coffee.data)
         self.order = coffee.data
-        
 
-def find_object():
-    # this is a place holder function for object detection
-    #returns the pose of the pseudo object
-    target_object = geometry_msgs.msg.Pose()
-    target_object.position.x = 0.367
-    target_object.position.y = 0.114
-    target_object.position.z = 0.906
-    target_object.orientation = Quaternion(*quaternion_from_euler(-3.138, -0.000, 1.570))
-
-    return target_object
-
-def milk_pose():
-    target_object = geometry_msgs.msg.Pose()
-    target_object.position.x = -0.215
-    target_object.position.y = 0.617
-    target_object.position.z =  0.401
-    target_object.orientation = Quaternion(*quaternion_from_euler(-3.138, 0.000, 1.572))
-
-    return target_object
-        
 def main():
         rospy.init_node('manipulator_test', anonymous=True)
         barista = Barista()
         while not rospy.is_shutdown():
             if barista.order == "test":
-                barista.move(find_object())
-                barista.move(milk_pose())
+                #grab the cup
+                barista.move_joints(joint_goals.cup_dock())
+                barista.move_joints(joint_goals.cup())
+                rospy.sleep(2)
+                barista.move_joints(joint_goals.cup_dock())
+
+                #move to first machine
+                barista.move_joints(joint_goals.machine_a_dock())
+                barista.move_joints(joint_goals.machine_a())
+                rospy.sleep(5)
+                barista.move_joints(joint_goals.machine_a_dock())
+
+                #move to second machine
+                barista.move_joints(joint_goals.machine_b_dock())
+                barista.move_joints(joint_goals.machine_b())
+                rospy.sleep(5)
+                barista.move_joints(joint_goals.machine_b_dock())
+
+                #move to third machine
+                barista.move_joints(joint_goals.machine_c_dock())
+                barista.move_joints(joint_goals.machine_c())
+                rospy.sleep(5)
+                barista.move_joints(joint_goals.machine_c_dock())
+
+                #deliver coffee to customer
+                barista.move_joints(joint_goals.cup_dock())
+                barista.move_joints(joint_goals.cup())
+
                 barista.order = None
             
 if __name__ == '__main__':
